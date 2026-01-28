@@ -1,0 +1,31 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "server for colloring app.",
+  "keywords": [
+    "coloring",
+    "aws"
+  ],
+  "homepage": "https://github.com/jeana-hines/coloring-app-aws#readme",
+  "bugs": {
+    "url": "https://github.com/jeana-hines/coloring-app-aws/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jeana-hines/coloring-app-aws.git"
+  },
+  "license": "ISC",
+  "author": "jeana",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm test"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "fs": "^0.0.1-security",
+    "path": "^0.12.7"
+  }
+}

@@ -21,8 +21,8 @@ const PanSVG = () => (
 // --- CONFIGURATION ---
 
 const CANVAS_SIZE = 1024; 
-const IMAGE_LIST_FILE = '/colorapp2/image_list.txt'; 
-const IMAGE_BASE_PATH = '/colorapp2/images/coloring/'; 
+const IMAGE_LIST_FILE = '/colorapp3/image_list.txt'; 
+const IMAGE_BASE_PATH = '/colorapp3/images/coloring/'; 
 
 // --- COLORING CANVAS LOGIC HOOK (Self-Contained) ---
 
@@ -143,7 +143,7 @@ function useCanvasDrawing(selectedImageName, activeTool, wrapperRef) {
       lCtx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
       lCtx.drawImage(img, 0, 0, CANVAS_SIZE, CANVAS_SIZE); 
 
-      // 1. Check for saved progress FIRST
+      // Check for saved progress FIRST
       const savedDataURL = localStorage.getItem(STORAGE_KEY);
       
       if (savedDataURL) {
@@ -156,7 +156,7 @@ function useCanvasDrawing(selectedImageName, activeTool, wrapperRef) {
           };
           savedImg.src = savedDataURL;
       } else {
-          // 2. ONLY fill with white if there is no saved progress
+          // ONLY fill with white if there is no saved progress
           dCtx.fillStyle = '#ffffff'; 
           dCtx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE); 
           setHistory([dCanvas.toDataURL('image/png')]);
@@ -394,7 +394,7 @@ function useCanvasDrawing(selectedImageName, activeTool, wrapperRef) {
 }
 
 
-// --- ImageThumbnailSelector (UNCHANGED) ---
+// --- ImageThumbnailSelector ---
 function ImageThumbnailSelector({ availableImages, selectedImage, setSelectedImage }) {
     
     const getThumbnailUrl = (name) => {
@@ -443,30 +443,15 @@ export default function App() {
   
   const canvasWrapperRef = useRef(null); 
 
-  // --- Dynamic Image List Fetch from Static TXT File (UNCHANGED) ---
+  // --- Dynamic Image List Fetch from Static TXT File ---
 useEffect(() => {
   setLoadingImages(true);
   
-  fetch(IMAGE_LIST_FILE)
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(`Failed to load ${IMAGE_LIST_FILE}. Status: ${response.status}`);
-      }
-      return response.text(); 
-    })
-    .then(text => {
-      const imageList = text
-                          .split('\n')
-                          .map(line => line.trim())
-                          .filter(line => line.length > 0);
-      
-      setAvailableImages(imageList);
-      if (imageList.length > 0) {
-           setSelectedImage(imageList[0]);
-      }
-    })
+  fetch(`${process.env.REACT_APP_API_URL}coloringapp3/api/coloring-images`)
+    .then(response => response.json())
+    .then(data => setAvailableImages(data))
     .catch(error => {
-      console.error("Error fetching image list from TXT:", error.message);
+      console.error("Error fetching image list from API:", error.message);
       setAvailableImages([]);
     })
     .finally(() => {
@@ -494,7 +479,7 @@ useEffect(() => {
   } = useCanvasDrawing(selectedImage, activeTool, canvasWrapperRef); 
   
   
-  // 💡 MODIFIED: More robust tool change handler
+  // 💡 Tool change handler
   const handleToolChange = (tool) => {
     if (tool === 'brush') {
       if (activeTool === 'brush') {
@@ -513,7 +498,7 @@ useEffect(() => {
   };
 
 
-  // --- DRAGGABLE TOOLBOX LOGIC (UNCHANGED) ---
+  // --- DRAGGABLE TOOLBOX LOGIC ---
   
 useEffect(() => {
     // Existing drag logic...
@@ -636,8 +621,8 @@ useEffect(() => {
 
   // --- RENDERING THE APP UI ---
   return (
-    <div className="">
-      <style>
+    <div className="App">
+        <style>
         {`
         
         .mainwrapper {
@@ -860,6 +845,10 @@ useEffect(() => {
           border-radius: 0.375rem;
           transition: background-color 0.2s;
         }
+        
+        back-button.button {
+            margin-bottom: 20px;
+        }
 
         .thumbnail-selector-container {
             text-align: center;
@@ -985,36 +974,22 @@ useEffect(() => {
         }
         `}
       </style>
-      <div className="mainwrapper">
-        <header className="header">
-          <h1 className="">Digital Coloring Book</h1>
-          <p>
-            Select a coloring page and start painting!
-          </p>
-        </header>
 
-
-        <button
-            onClick={clearCanvas}
-            disabled={!selectedImage}
-            className="w-full flex items-center justify-center bg-yellow-500 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:bg-yellow-600 transition duration-150 disabled:bg-gray-400 clear-button"
-        >
+        {selectedImage ? (
+            <>
+            {/* CANVAS VIEW */}
             
-            Clear Coloring
-        </button>
-        <button
-            onClick={reloadLineArt}
-            disabled={!selectedImage}
-            className="w-full flex items-center justify-center bg-purple-500 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:bg-purple-600 transition duration-150 disabled:bg-gray-400"
-        >
-            Reload Line Art
-        </button>
+      
+      <button className="back-button" onClick={() => setSelectedImage(null)}>Back to Gallery</button>
+      <div className="mainwrapper">
+        
+        
         <p>&nbsp;</p>
         
-        {/* Image Selection Section (UNCHANGED) */}
+        {/* Image Selection Section */}
         <div className="image-selection">
             {loadingImages ? (
-                <div className="text-gray-500 p-3">Loading image list from static file...</div>
+                <div className="text-gray-500 p-3">Loading image list ...</div>
             ) : availableImages.length > 0 ? (
                 <ImageThumbnailSelector 
                     availableImages={availableImages} 
@@ -1039,10 +1014,17 @@ useEffect(() => {
                 </div>
                 
                 <div className="space-y-4 flex flex-col items-center">
+                    <button
+                        onClick={clearCanvas}
+                        disabled={!selectedImage}
+                        className="w-full flex items-center justify-center bg-yellow-500 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:bg-yellow-600 transition duration-150 disabled:bg-gray-400 clear-button"
+                    >
+                        Clear Coloring
+                    </button>
                     
                     {/* --- ICON BUTTONS --- */}
                     
-                    {/* 1. BRUSH BUTTON WRAPPER (FOR SIDE PANEL) */}
+                    {/*  BRUSH BUTTON WRAPPER (FOR SIDE PANEL) */}
                     <div className="toolbox-button-wrapper">
                         {/* BRUSH BUTTON (Toggles Brush Controls) */}
                         <button 
@@ -1068,14 +1050,14 @@ useEffect(() => {
                                         type="range"
                                         min="0"
                                         max="100"
-                                        step="25" // 💡 CRITICAL: Enforce snapping to multiples of 25
-                                        list="hardness-ticks" // 💡 CRITICAL: Link to the datalist
+                                        step="25" // Enforce snapping to multiples of 25
+                                        list="hardness-ticks" // Link to the datalist
                                         value={hardness}
                                         onChange={(e) => setHardness(parseInt(e.target.value))}
                                         className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer range-lg"
                                     />
                                     
-                                    {/* 💡 DATA LIST FOR VISUAL TICKS 
+                                    {/* DATA LIST FOR VISUAL TICKS 
                                     <datalist id="hardness-ticks" className="hardness-datalist">
                                         <option value="0"></option>
                                         <option value="25"></option>
@@ -1117,7 +1099,7 @@ useEffect(() => {
                         )}
                     </div>
                     
-                    {/* 2. NEW PAN BUTTON */}
+                    {/* PAN BUTTON */}
                     <div className="toolbox-button-wrapper">
                         <button
                             onClick={() => handleToolChange('pan')}
@@ -1129,7 +1111,7 @@ useEffect(() => {
                         </button>
                     </div>
 
-                    {/* 3. UNDO BUTTON (UNCHANGED) */}
+                    {/* UNDO BUTTON */}
                     <div className="toolbox-button-wrapper">
                         <button
                             onClick={undoStroke}
@@ -1141,7 +1123,7 @@ useEffect(() => {
                         </button>
                     </div>
 
-                    {/* 4. DOWNLOAD BUTTON (UNCHANGED) */}
+                    {/* DOWNLOAD BUTTON  */}
                     <div className="toolbox-button-wrapper">
                         <button
                             onClick={() => {
@@ -1190,7 +1172,7 @@ useEffect(() => {
                 </div>
             </div>
 
-            {/* Canvas Area (FIXED LAYERING) */}
+            {/* Canvas Area */}
             <div className="lg:w-3/4 bg-white rounded-xl shadow-2xl flex items-center justify-center p-2 order-1 lg:order-2">
                 {!selectedImage && (
                      <div className="text-gray-500 p-6 bg-gray-100 rounded-lg w-full text-center h-[400px] sm:h-[600px] flex items-center justify-center">
@@ -1204,12 +1186,12 @@ useEffect(() => {
                     ref={canvasWrapperRef} 
                     className={`canvas-wrapper ${!selectedImage ? 'hidden' : 'block'}`}
                 >
-                    {/* 1. Drawing Canvas (Bottom Layer, receives mouse events) */}
+                    {/* Drawing Canvas (Bottom Layer, receives mouse events) */}
                     <canvas
                         ref={drawingCanvasRef}
                         className="drawing-canvas"
                     ></canvas>
-                    {/* 2. Line Art Canvas (Top Layer, blocks clicks) */}
+                    {/* Line Art Canvas (Top Layer, blocks clicks) */}
                     <canvas
                         ref={lineCanvasRef}
                         className="line-canvas"
@@ -1218,7 +1200,7 @@ useEffect(() => {
             </div>
         </div>
 
-        {/* Floating Zoom Controls (UNCHANGED) */}
+        {/* Floating Zoom Controls */}
         <div className="zoom-controls-container">
             <button 
                 onClick={() => setZoomLevel(prev => Math.min(prev + 0.1, 2.0))} 
@@ -1234,9 +1216,7 @@ useEffect(() => {
                 -
             </button>
         </div>
-
-
-         {/* Footer/Debug Info (UNCHANGED) */}
+        {/* Footer/Debug Info */}
         <div className="mt-8 text-center text-xs text-gray-400">
             <p>&nbsp;</p>
             <p>&nbsp;</p>
@@ -1246,6 +1226,26 @@ useEffect(() => {
             <p>&nbsp;</p>
         </div>
       </div>
+    </>
+  ) : (
+            <>
+            {/* GALLERY VIEW */}
+            <header className="header">
+                <h1 className="">Digital Coloring Book</h1>
+                <p>
+                    Select a coloring page and start painting!
+                </p>
+            </header>
+            <div className="image-selection">
+                    <ImageThumbnailSelector 
+                        availableImages={availableImages} 
+                        selectedImage={selectedImage} 
+                        setSelectedImage={setSelectedImage} 
+                    />
+                </div>
+            </>
+
+        )}
     </div>
   );
 }
